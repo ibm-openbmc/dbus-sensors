@@ -21,19 +21,24 @@
 #include "Utils.hpp"
 #include "sensor.hpp"
 
+#include <unistd.h>
+
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/random_access_file.hpp>
+#include <boost/system/errc.hpp>
 #include <phosphor-logging/lg2.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
+#include <algorithm>
 #include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <limits>
+#include <map>
 #include <memory>
 #include <string>
 #include <system_error>
@@ -48,6 +53,8 @@
 // https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-bus-iio
 // For IIO RAW sensors we get a raw_value, an offset, and scale to compute
 // the value = (raw_value + offset) * scale
+
+std::vector<std::pair<size_t, size_t>> HwmonTempSensor::failedDevices{};
 
 HwmonTempSensor::HwmonTempSensor(
     const std::string& path, const std::string& objectType,
@@ -175,6 +182,7 @@ void HwmonTempSensor::restartRead()
 void HwmonTempSensor::handleResponse(const boost::system::error_code& err,
                                      size_t bytesRead)
 {
+    errorCode = err;
     if ((err == boost::system::errc::bad_file_descriptor) ||
         (err == boost::asio::error::misc_errors::not_found))
     {
@@ -191,7 +199,12 @@ void HwmonTempSensor::handleResponse(const boost::system::error_code& err,
             std::from_chars(readBuf.data(), bufEnd, nvalue);
         if (ret.ec != std::errc())
         {
-            incrementError();
+            if (incrementError())
+            {
+                errorCode = boost::system::errc::make_error_code(
+                    boost::system::errc::invalid_argument);
+                createEventLog();
+            }
         }
         else
         {
@@ -200,7 +213,10 @@ void HwmonTempSensor::handleResponse(const boost::system::error_code& err,
     }
     else
     {
-        incrementError();
+        if (incrementError())
+        {
+            createEventLog();
+        }
     }
 
     restartRead();
@@ -209,4 +225,59 @@ void HwmonTempSensor::handleResponse(const boost::system::error_code& err,
 void HwmonTempSensor::checkThresholds()
 {
     thresholds::checkThresholds(this);
+}
+
+void HwmonTempSensor::clearFailedDevices()
+{
+    failedDevices.clear();
+}
+
+// Creates a ReadFailure event log if the power is on and if the
+// device hasn't previously had an error logged against it.
+void HwmonTempSensor::createEventLog()
+{
+    if (!isChassisOn())
+    {
+        return;
+    }
+
+    if (std::find(failedDevices.begin(), failedDevices.end(),
+                  std::make_pair(bus, address)) != failedDevices.end())
+    {
+        // Already have a failure on this device
+        return;
+    }
+
+    failedDevices.emplace_back(bus, address);
+
+    lg2::error("Creating event log for sensor {SENSOR} read failure on "
+               "{PATH} with error code {ERROR}",
+               "SENSOR", name, "PATH", path, "ERROR", errorCode.value());
+
+    std::map<std::string, std::string> additionalData;
+
+    additionalData["SENSOR_NAME"] = name;
+    additionalData["CALLOUT_IIC_BUS"] = std::to_string(bus);
+    additionalData["CALLOUT_IIC_ADDR"] = std::to_string(address);
+    additionalData["CALLOUT_ERRNO"] = std::to_string(errorCode.value());
+    additionalData["IIC_ERROR_CATEGORY"] = errorCode.category().name();
+    additionalData["IIC_ERROR_MESSAGE"] =
+        errorCode.category().message(errorCode.value());
+    additionalData["FILE"] = path;
+    additionalData["_PID"] = std::to_string(getpid());
+
+    dbusConnection->async_method_call(
+        [this](const boost::system::error_code ec) {
+            if (ec)
+            {
+                lg2::error(
+                    "Failed to create event log for a a failed read on sensor {SENSOR}",
+                    "SENSOR", name);
+                return;
+            }
+        },
+        "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
+        "xyz.openbmc_project.Logging.Create", "Create",
+        "xyz.openbmc_project.Sensor.Device.Error.ReadFailure",
+        "xyz.openbmc_project.Logging.Entry.Level.Error", additionalData);
 }

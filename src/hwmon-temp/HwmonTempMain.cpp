@@ -19,6 +19,7 @@
 #include "SensorPaths.hpp"
 #include "Thresholds.hpp"
 #include "Utils.hpp"
+#include "sensor.hpp"
 
 #include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
@@ -38,6 +39,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -578,6 +580,29 @@ void interfaceRemoved(
     }
 }
 
+void checkForErrors(
+    PowerState type, bool newState,
+    boost::container::flat_map<std::string, std::shared_ptr<HwmonTempSensor>>&
+        sensors)
+{
+    // Only check when chassis power is turning on
+    if ((type != PowerState::chassisOn) || (!newState))
+    {
+        return;
+    }
+
+    // Forget about previous fails.
+    HwmonTempSensor::clearFailedDevices();
+
+    for (const auto& [name, sensor] : sensors)
+    {
+        if ((sensor->errCount >= errorThreshold) && std::isnan(sensor->value))
+        {
+            sensor->createEventLog();
+        }
+    }
+}
+
 static void powerStateChanged(
     PowerState type, bool newState,
     boost::container::flat_map<std::string, std::shared_ptr<HwmonTempSensor>>&
@@ -599,6 +624,8 @@ static void powerStateChanged(
             }
         }
     }
+
+    checkForErrors(type, newState, sensors);
 }
 
 int main()
