@@ -40,7 +40,8 @@ class HwmonTempSensor :
                     const struct SensorParams& thisSensorParameters,
                     float pollRate, const std::string& sensorConfiguration,
                     PowerState powerState,
-                    const std::shared_ptr<I2CDevice>& i2cDevice);
+                    const std::shared_ptr<I2CDevice>& i2cDevice, size_t bus,
+                    size_t address);
     ~HwmonTempSensor() override;
     void setupRead();
     void activate(const std::string& newPath,
@@ -65,6 +66,8 @@ class HwmonTempSensor :
     double offsetValue;
     double scaleValue;
     unsigned int sensorPollMs;
+    size_t bus;
+    size_t address;
 
     void handleResponse(const boost::system::error_code& err, size_t bytesRead);
     void restartRead();
