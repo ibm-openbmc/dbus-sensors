@@ -89,10 +89,6 @@ void createSensors(
             // configuration
             for (auto& path : paths)
             {
-                if (!isAdc(path.parent_path()))
-                {
-                    continue;
-                }
                 std::smatch match;
                 std::string pathStr = path.string();
 
