@@ -39,7 +39,7 @@ utils_dep = declare_dependency(
 
 devicemgmt_a = static_library(
     'devicemgmt_a',
-    ['DeviceMgmt.cpp'],
+    ['DeviceMgmt.cpp', 'SlotPowerManager.cpp'],
     dependencies: default_deps,
 )
 

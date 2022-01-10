@@ -17,6 +17,7 @@
 #include "DeviceMgmt.hpp"
 #include "HwmonTempSensor.hpp"
 #include "SensorPaths.hpp"
+#include "SlotPowerManager.hpp"
 #include "Thresholds.hpp"
 #include "Utils.hpp"
 #include "sensor.hpp"
@@ -91,6 +92,7 @@ static const I2CDeviceTypeMap sensorTypes{
     {"TMP175", I2CDeviceType{"tmp175", true}},
     {"TMP421", I2CDeviceType{"tmp421", true}},
     {"TMP432", I2CDeviceType{"tmp432", true}},
+    {"TMP435", I2CDeviceType{"tmp435", true}},
     {"TMP441", I2CDeviceType{"tmp441", true}},
     {"TMP461", I2CDeviceType{"tmp461", true}},
     {"TMP464", I2CDeviceType{"tmp464", true}},
@@ -279,6 +281,8 @@ void createSensors(
         [&io, &objectServer, &sensors, &dbusConnection, sensorsChanged,
          activateOnly](const ManagedObjectType& sensorConfigurations) {
             bool firstScan = sensorsChanged == nullptr;
+
+            slotPowerManager->update(sensorConfigurations);
 
             SensorConfigMap configMap =
                 buildSensorConfigMap(sensorConfigurations);
@@ -646,6 +650,12 @@ int main()
         powerStateChanged(type, state, sensors, io, objectServer, systemBus);
     };
     setupPowerMatchCallback(systemBus, powerCallBack);
+
+    slotPowerManager = std::make_unique<SlotPowerManager>(
+        *systemBus, [&](const auto& newSensors) {
+            createSensors(io, objectServer, sensors, systemBus, newSensors,
+                          false);
+        });
 
     boost::asio::post(io, [&]() {
         createSensors(io, objectServer, sensors, systemBus, nullptr, false);

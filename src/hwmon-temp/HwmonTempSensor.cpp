@@ -17,6 +17,7 @@
 #include "HwmonTempSensor.hpp"
 
 #include "DeviceMgmt.hpp"
+#include "SlotPowerManager.hpp"
 #include "Thresholds.hpp"
 #include "Utils.hpp"
 #include "sensor.hpp"
@@ -141,7 +142,7 @@ HwmonTempSensor::~HwmonTempSensor()
 
 void HwmonTempSensor::setupRead()
 {
-    if (!readingStateGood())
+    if (!readingStateGood() || slotPowerManager->isDeviceOff(bus, address))
     {
         markAvailable(false);
         updateValue(std::numeric_limits<double>::quiet_NaN());
