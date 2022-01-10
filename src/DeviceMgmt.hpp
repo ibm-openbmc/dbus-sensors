@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SlotPowerManager.hpp"
 #include "Utils.hpp"
 
 #include <strings.h>
@@ -130,6 +131,11 @@ boost::container::flat_map<std::string,
                 devices.emplace(
                     path.str,
                     std::make_pair(findSensor->getI2CDevice(), false));
+                continue;
+            }
+
+            if (slotPowerManager->isDeviceOff(cfg))
+            {
                 continue;
             }
 
