@@ -266,6 +266,11 @@ struct Sensor
         return 1;
     }
 
+    virtual void createAssociation()
+    {
+        ::createAssociation(association, configurationPath);
+    }
+
     void setInitialProperties(const std::string_view unit,
                               const std::string& label = std::string(),
                               size_t thresholdSize = 0)
@@ -276,7 +281,7 @@ struct Sensor
             setupPowerMatch(dbusConnection);
         }
 
-        createAssociation(association, configurationPath);
+        createAssociation();
 
         sensorInterface->register_property("Unit", std::string(unit));
         sensorInterface->register_property("MaxValue", maxValue);
