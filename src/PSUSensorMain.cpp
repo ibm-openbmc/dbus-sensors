@@ -51,6 +51,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <regex>
 #include <stdexcept>
@@ -643,6 +644,22 @@ static void createSensorsCallback(
                     labelHead.insert(0, "max");
                 }
 
+                // Don't add PWM sensors if it's not in label list
+                if (!findLabels.empty())
+                {
+                    /* Check if this labelHead is enabled in config file */
+                    if (std::find(findLabels.begin(), findLabels.end(),
+                                  labelHead) == findLabels.end())
+                    {
+                        if constexpr (debug)
+                        {
+                            lg2::error(
+                                "could not find {LABEL} in the Labels list",
+                                "LABEL", labelHead);
+                        }
+                        continue;
+                    }
+                }
                 checkPWMSensor(sensorPath, labelHead, *interfacePath,
                                dbusConnection, objectServer, psuNames[0]);
             }
@@ -672,14 +689,18 @@ static void createSensorsCallback(
                     continue;
                 }
             }
-
-            auto findProperty = labelMatch.find(sensorNameSubStr);
+            auto it = std::find_if(labelHead.begin(), labelHead.end(),
+                                   static_cast<int (*)(int)>(std::isdigit));
+            std::string_view labelHeadView(
+                labelHead.data(), std::distance(labelHead.begin(), it));
+            auto findProperty =
+                labelMatch.find(static_cast<std::string>(labelHeadView));
             if (findProperty == labelMatch.end())
             {
                 if constexpr (debug)
                 {
                     std::cerr << "Could not find matching default property for "
-                              << sensorNameSubStr << "\n";
+                              << labelHead << "\n";
                 }
                 continue;
             }
