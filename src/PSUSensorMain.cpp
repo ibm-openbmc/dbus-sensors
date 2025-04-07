@@ -653,9 +653,8 @@ static void createSensorsCallback(
                     {
                         if constexpr (debug)
                         {
-                            lg2::error(
-                                "could not find {LABEL} in the Labels list",
-                                "LABEL", labelHead);
+                            std::cerr << "could not find " << labelHead
+                                      << " in the Labels list\n";
                         }
                         continue;
                     }
