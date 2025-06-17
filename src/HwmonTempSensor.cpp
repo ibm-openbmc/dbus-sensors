@@ -128,6 +128,14 @@ void HwmonTempSensor::setupRead(void)
     {
         markAvailable(false);
         updateValue(std::numeric_limits<double>::quiet_NaN());
+        if (slotPowerManager->isDeviceOff(bus, address))
+        {
+            for (auto& threshold : thresholds)
+            {
+                assertThresholds(this, value, threshold.level,
+                                 threshold.direction, false);
+            }
+        }
         restartRead();
         return;
     }
