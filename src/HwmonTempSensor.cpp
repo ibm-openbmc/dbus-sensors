@@ -257,8 +257,7 @@ void HwmonTempSensor::createEventLog()
                       << name << "\n";
             return;
         }
-    },
-        "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
+    }, "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
         "xyz.openbmc_project.Logging.Create", "Create",
         "xyz.openbmc_project.Sensor.Device.Error.ReadFailure",
         "xyz.openbmc_project.Logging.Entry.Level.Error", additionalData);
