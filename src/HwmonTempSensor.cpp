@@ -128,6 +128,14 @@ void HwmonTempSensor::setupRead(void)
     {
         markAvailable(false);
         updateValue(std::numeric_limits<double>::quiet_NaN());
+        if (slotPowerManager->isDeviceOff(bus, address))
+        {
+            for (auto& threshold : thresholds)
+            {
+                assertThresholds(this, value, threshold.level,
+                                 threshold.direction, false);
+            }
+        }
         restartRead();
         return;
     }
@@ -257,8 +265,7 @@ void HwmonTempSensor::createEventLog()
                       << name << "\n";
             return;
         }
-    },
-        "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
+    }, "xyz.openbmc_project.Logging", "/xyz/openbmc_project/logging",
         "xyz.openbmc_project.Logging.Create", "Create",
         "xyz.openbmc_project.Sensor.Device.Error.ReadFailure",
         "xyz.openbmc_project.Logging.Entry.Level.Error", additionalData);

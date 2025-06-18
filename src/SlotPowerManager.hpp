@@ -44,8 +44,8 @@ class SlotPowerManager
                   std::string(inventoryPath) + "',arg0namespace='" +
                   powerStateInterface + "'",
               [this](sdbusplus::message_t& msg) {
-        this->powerStateChanged(msg);
-    }),
+                  this->powerStateChanged(msg);
+              }),
         slotOnFunc(std::move(slotOnFunc))
     {}
 
