@@ -281,7 +281,7 @@ struct Sensor
             setupPowerMatch(dbusConnection);
         }
 
-        createAssociation();
+        // createAssociation();
 
         sensorInterface->register_property("Unit", std::string(unit));
         sensorInterface->register_property("MaxValue", maxValue);
