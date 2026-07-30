@@ -659,16 +659,15 @@ void findLimits(std::pair<double, double>& limits,
 
 void createAssociation(
     std::shared_ptr<sdbusplus::asio::dbus_interface>& association,
-    [[maybe_unused]] const std::string& path)
+    const std::string& path)
 {
     if (association)
     {
+        std::filesystem::path p(path);
+
         std::vector<Association> associations;
-        // Hardcode the chassis path until there is an upstream dbus-sensors
-        // way to find the appropriate chassis and not just the board.
-        associations.emplace_back(
-            "chassis", "all_sensors",
-            "/xyz/openbmc_project/inventory/system/chassis");
+        associations.emplace_back("chassis", "all_sensors",
+                                  p.parent_path().string());
         association->register_property("Associations", associations);
         association->initialize();
     }

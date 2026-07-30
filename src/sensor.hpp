@@ -274,7 +274,7 @@ struct Sensor
             setupPowerMatch(dbusConnection);
         }
 
-        createAssociation();
+        // createAssociation();
 
         sensorInterface->register_property("Unit", unit);
         sensorInterface->register_property("MaxValue", maxValue);
