@@ -47,7 +47,7 @@ class SlotPowerManager
     SlotPowerManager(sdbusplus::asio::connection& systemBus,
                      SlotOnFuncType slotOnFunc) :
         systemBus(systemBus),
-        match(static_cast<sdbusplus::bus::bus&>(systemBus),
+        match(static_cast<sdbusplus::bus_t&>(systemBus),
               "type='signal',member='PropertiesChanged',path_namespace='" +
                   std::string(inventoryPath) + "',arg0namespace='" +
                   powerStateInterface + "'",
@@ -74,7 +74,7 @@ class SlotPowerManager
         uint64_t address{};
     };
 
-    void powerStateChanged(sdbusplus::message::message& msg);
+    void powerStateChanged(sdbusplus::message_t& msg);
     static void getDeviceConfigs(const ManagedObjectType& sensorConfigurations,
                                  std::vector<DeviceInfo>& deviceConfigs);
     void getSlots(std::map<std::string, std::string>& slots);
@@ -82,7 +82,7 @@ class SlotPowerManager
 
     sdbusplus::asio::connection& systemBus;
 
-    sdbusplus::bus::match::match match;
+    sdbusplus::match match;
 
     std::map<std::string, std::vector<DeviceInfo>> slotDevices;
 
